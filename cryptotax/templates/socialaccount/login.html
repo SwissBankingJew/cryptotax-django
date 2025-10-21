@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% if process == "connect" %}{% translate "Connect account" %}{% else %}{% translate "Sign In Via" %} {{ provider.name }}{% endif %} · cryptotax{% endblock %}
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-5">
+      <h2 class="mb-3">
+        {% if process == "connect" %}
+          {% translate "Connect account" %}
+        {% else %}
+          {% blocktrans with provider.name as provider %}Sign In Via {{ provider }}{% endblocktrans %}
+        {% endif %}
+      </h2>
+
+      <div class="card">
+        <div class="card-body">
+          {% if process == "connect" %}
+            <p class="text-muted">{% blocktrans with provider.name as provider %}You are about to connect a new third‑party account from {{ provider }}.{% endblocktrans %}</p>
+          {% else %}
+            <p class="text-muted">{% blocktrans with provider.name as provider %}You are about to sign in using a third‑party account from {{ provider }}.{% endblocktrans %}</p>
+          {% endif %}
+
+          <form method="post" action="">
+            {% csrf_token %}
+            {% if redirect_field_value %}
+              <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+            {% endif %}
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">{% translate "Continue" %}</button>
+              <a href="/" class="btn btn-secondary">{% translate "Cancel" %}</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,117 @@
+.dir-locals.el
+########################################
+# Project / Ops helpers
+########################################
+AGENTS.md
+deploy.sh
+# Systemd unit files
+*.service
+
+########################################
+# Python
+########################################
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+downloads/
+wheels/
+share/python-wheels/
+pip-wheel-metadata/
+.Python
+.venv/
+venv/
+env/
+ENV/
+__pypackages__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.hypothesis/
+.dmypy.json
+dmypy.json
+.pyre/
+.python-version
+# per-package legacy paths
+backend/.venv/
+backend/__pycache__/
+backend/.python-version
+
+########################################
+# Node / JS
+########################################
+node_modules/
+dist/
+.next/
+out/
+.nuxt/
+.svelte-kit/
+.eslintcache
+.parcel-cache/
+.turbo/
+coverage/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# legacy frontend-specific paths
+frontend/dist/
+frontend/.vite/
+frontend/.eslintcache
+
+########################################
+# Environment / Secrets
+########################################
+.env
+.env.*
+!.env.example
+.envrc
+.direnv/
+*.pem
+*.key
+*.crt
+*.p12
+
+########################################
+# Local shell / tooling state
+########################################
+.bash_history
+.bash_logout
+.bash_profile
+.bashrc
+.cache/
+.codex/
+.npm/
+
+########################################
+# AI assistant leftovers
+########################################
+.claude.json
+.claude.json.backup
+.claude/
+.cloud-locale-test.skip
+
+########################################
+# Docs / Sites
+########################################
+docs/_build/
+site/
+
+########################################
+# Editor / OS noise
+########################################
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

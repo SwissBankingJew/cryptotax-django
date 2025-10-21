@@ -1,0 +1,4 @@
+/* Project overrides loaded after Bootstrap */
+body { background-color: #fafafa; }
+.navbar-brand { font-weight: 600; }
+.card { border-radius: .6rem; }
