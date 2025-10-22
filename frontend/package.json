@@ -1,0 +1,21 @@
+{
+  "name": "cryptotax-frontend",
+  "version": "1.0.0",
+  "description": "Frontend JavaScript for Solana Pay integration",
+  "private": true,
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@solana/web3.js": "^1.95.8",
+    "@solana/pay": "^0.2.5",
+    "buffer": "^6.0.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  }
+}

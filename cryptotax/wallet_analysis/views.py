@@ -1,0 +1,334 @@
+"""
+Views for wallet analysis order creation and payment processing.
+"""
+
+import os
+import json
+import re
+from django.shortcuts import render, redirect, get_object_or_404
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from django_q.tasks import async_task
+
+from .models import WalletAnalysisOrder, SolanaPayment
+from .solana_utils import generate_solana_pay_url, verify_transaction_on_chain
+
+import httpx
+
+
+def validate_evm_address(address: str) -> bool:
+    """
+    Validate EVM wallet address format.
+
+    Args:
+        address: Address to validate
+
+    Returns:
+        True if valid EVM address, False otherwise
+    """
+    # EVM address: 0x followed by 40 hexadecimal characters
+    pattern = r'^0x[a-fA-F0-9]{40}$'
+    return bool(re.match(pattern, address))
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def create_order_view(request):
+    """
+    Create a new wallet analysis order.
+
+    GET: Display form to enter wallet address
+    POST: Create order and redirect to payment page
+    """
+    if request.method == 'POST':
+        wallet_address = request.POST.get('wallet_address', '').strip()
+
+        # Validate wallet address
+        if not wallet_address:
+            return render(request, 'wallet_analysis/create_order.html', {
+                'error': 'Please enter a wallet address'
+            })
+
+        if not validate_evm_address(wallet_address):
+            return render(request, 'wallet_analysis/create_order.html', {
+                'error': 'Invalid EVM wallet address. Must start with 0x and be 42 characters long.',
+                'wallet_address': wallet_address
+            })
+
+        # Create order
+        order = WalletAnalysisOrder.objects.create(
+            user=request.user,
+            wallet_address=wallet_address,
+            status=WalletAnalysisOrder.STATUS_PENDING_PAYMENT
+        )
+
+        # Generate Solana Pay URL
+        recipient = os.getenv('SOLANA_RECIPIENT_ADDRESS')
+
+        if not recipient:
+            return render(request, 'wallet_analysis/create_order.html', {
+                'error': 'Payment system not configured. Please contact support.'
+            })
+
+        payment_url, reference = generate_solana_pay_url(
+            recipient=recipient,
+            amount_usd=float(order.payment_amount_usd),
+            token_type='USDC'
+        )
+
+        # Create payment record
+        payment = SolanaPayment.objects.create(
+            order=order,
+            payment_url=payment_url,
+            reference=reference,
+            recipient_address=recipient,
+            amount_expected=int(order.payment_amount_usd * 1_000_000),  # Convert to lamports
+            token_type=SolanaPayment.TOKEN_USDC,
+            token_mint=SolanaPayment.USDC_MINT
+        )
+
+        # Redirect to payment page
+        return redirect('wallet_analysis:payment_page', order_id=order.id)
+
+    # GET request - show form
+    return render(request, 'wallet_analysis/create_order.html')
+
+
+@login_required
+def payment_page_view(request, order_id):
+    """
+    Display payment page with Solana Pay QR code and wallet connection.
+
+    Args:
+        order_id: UUID of the order
+    """
+    # Fetch order and verify ownership
+    order = get_object_or_404(WalletAnalysisOrder, id=order_id, user=request.user)
+
+    # Get payment details
+    try:
+        payment = order.solana_payment
+    except SolanaPayment.DoesNotExist:
+        return render(request, 'wallet_analysis/error.html', {
+            'error': 'Payment record not found for this order.'
+        })
+
+    # If already paid, redirect to dashboard
+    if payment.is_paid:
+        return redirect('wallet_analysis:order_detail', order_id=order.id)
+
+    context = {
+        'order': order,
+        'payment': payment,
+        'payment_amount': order.payment_amount_usd,
+        'recipient': payment.recipient_address,
+        'reference': str(payment.reference),
+        'token_mint': payment.token_mint,
+        'amount_lamports': payment.amount_expected,
+        'rpc_url': settings.SOLANA_RPC_URL,
+    }
+
+    return render(request, 'wallet_analysis/payment.html', context)
+
+
+@require_POST
+@csrf_exempt  # We'll verify via signature instead
+def verify_payment_api(request):
+    """
+    API endpoint to verify a payment transaction.
+    Called by frontend after user completes payment in wallet.
+
+    POST body: {"order_id": "uuid", "signature": "tx_signature"}
+
+    Returns:
+        JSON: {"success": bool, "message": str, "order_status": str}
+    """
+    try:
+        # Parse request body
+        data = json.loads(request.body)
+        order_id = data.get('order_id')
+        signature = data.get('signature')
+
+        if not order_id or not signature:
+            return JsonResponse({
+                'success': False,
+                'message': 'Missing order_id or signature'
+            }, status=400)
+
+        # Fetch payment
+        try:
+            payment = SolanaPayment.objects.select_related('order').get(
+                order__id=order_id
+            )
+        except SolanaPayment.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Payment not found'
+            }, status=404)
+
+        # Check if already paid
+        if payment.is_paid:
+            return JsonResponse({
+                'success': True,
+                'message': 'Payment already confirmed',
+                'order_status': payment.order.status
+            })
+
+        # Verify transaction on blockchain
+        is_valid = verify_transaction_on_chain(
+            signature=signature,
+            recipient=payment.recipient_address,
+            expected_amount=payment.amount_expected,
+            token_mint=payment.token_mint,
+            reference=payment.reference
+        )
+
+        if is_valid:
+            # Update payment status
+            payment.transaction_signature = signature
+            payment.status = SolanaPayment.STATUS_CONFIRMED
+            payment.confirmed_at = timezone.now()
+            payment.save()
+
+            # Update order status
+            order = payment.order
+            order.status = WalletAnalysisOrder.STATUS_PAYMENT_RECEIVED
+            order.save()
+
+            # Queue Dune query execution
+            async_task(
+                'wallet_analysis.tasks.execute_wallet_analysis',
+                order_id=str(order.id)
+            )
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Payment verified successfully! Your reports are being generated.',
+                'order_status': order.status
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': 'Payment verification failed. Transaction does not match expected parameters.'
+            }, status=400)
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid JSON'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }, status=500)
+
+
+@require_POST
+@csrf_exempt
+def solana_rpc_proxy(request):
+    """
+    Proxy Solana JSON-RPC requests to the configured SOLANA_RPC_URL (e.g., Helius).
+
+    This prevents exposing the API key to the browser and avoids Helius 403 referer issues.
+    """
+    try:
+        rpc_url = settings.SOLANA_RPC_URL
+        if not rpc_url:
+            return JsonResponse({'error': 'RPC URL not configured'}, status=500)
+
+        # Forward the JSON body as-is to the upstream RPC
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        }
+
+        with httpx.Client(timeout=15.0) as client:
+            upstream = client.post(rpc_url, content=request.body, headers=headers)
+
+        # Pass through upstream response
+        return JsonResponse(
+            data=upstream.json(),
+            status=upstream.status_code,
+            safe=False
+        )
+    except httpx.RequestError as e:
+        return JsonResponse({'error': f'Upstream request failed: {e}'}, status=502)
+    except ValueError:
+        # If upstream returned non-JSON, pass raw text
+        return JsonResponse({'error': 'Invalid response from RPC'}, status=502)
+
+
+@login_required
+def payment_status_api(request, order_id):
+    """
+    API endpoint to check payment status.
+    Used for polling if immediate verification fails.
+
+    Args:
+        order_id: UUID of the order
+
+    Returns:
+        JSON: {"payment_status": str, "order_status": str, "confirmed_at": str}
+    """
+    try:
+        # Fetch order and verify ownership
+        order = get_object_or_404(WalletAnalysisOrder, id=order_id, user=request.user)
+
+        try:
+            payment = order.solana_payment
+        except SolanaPayment.DoesNotExist:
+            return JsonResponse({
+                'error': 'Payment not found'
+            }, status=404)
+
+        response_data = {
+            'payment_status': payment.status,
+            'order_status': order.status,
+            'confirmed_at': payment.confirmed_at.isoformat() if payment.confirmed_at else None,
+            'transaction_signature': payment.transaction_signature or None
+        }
+
+        return JsonResponse(response_data)
+
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+def order_detail_view(request, order_id):
+    """
+    Display order details and available reports.
+
+    Args:
+        order_id: UUID of the order
+    """
+    # Fetch order and verify ownership
+    order = get_object_or_404(WalletAnalysisOrder, id=order_id, user=request.user)
+
+    # Get payment details
+    try:
+        payment = order.solana_payment
+    except SolanaPayment.DoesNotExist:
+        payment = None
+
+    # Get query jobs
+    query_jobs = order.dune_query_jobs.all()
+
+    # Get report files
+    report_files = order.report_files.all()
+
+    context = {
+        'order': order,
+        'payment': payment,
+        'query_jobs': query_jobs,
+        'report_files': report_files,
+    }
+
+    return render(request, 'wallet_analysis/order_detail.html', context)

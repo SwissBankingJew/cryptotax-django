@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Payment - CryptoTax{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-9 col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-3">Complete Payment</h1>
+
+        <div class="bg-light rounded p-3 mb-3">
+          <div class="d-flex justify-content-between py-1">
+            <span class="text-muted">Wallet to Analyze:</span>
+            <span class="fw-semibold wallet-address">{{ order.wallet_address }}</span>
+          </div>
+          <div class="d-flex justify-content-between py-1">
+            <span class="text-muted">Order ID:</span>
+            <span class="fw-semibold">{{ order.id }}</span>
+          </div>
+          <div class="d-flex justify-content-between py-1">
+            <span class="text-muted">Payment Amount:</span>
+            <span class="fw-bold" style="font-size:1.25rem; color:#14F195;">${{ payment_amount }} USDC</span>
+          </div>
+          <div class="d-flex justify-content-between py-1">
+            <span class="text-muted">Recipient:</span>
+            <span class="fw-semibold wallet-address">{{ recipient }}</span>
+          </div>
+        </div>
+
+        <div id="status-message" class="alert alert-info" role="alert">
+          <span id="status-text">Click the button below to pay with your Solana wallet</span>
+        </div>
+
+        <button id="pay-button" class="btn btn-gradient-solana w-100 fw-semibold">
+          <span id="button-text">Pay with Solana</span>
+        </button>
+
+        <p class="text-center text-muted mt-3" style="font-size: 0.9rem;">
+          Supported wallets: Phantom, Solflare, Backpack
+        </p>
+
+        <div class="mt-2">
+          <a class="btn btn-link px-0" href="{% url 'wallet_analysis:create_order' %}">
+            <i class="bi bi-arrow-left"></i> Back
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Solana Payment Bundle - Properly built with esbuild -->
+<script src="{% static 'js/solana-payment.bundle.js' %}"></script>
+
+<script>
+  // Configuration from Django
+  const RPC_PROXY_URL = new URL('{% url "wallet_analysis:solana_rpc_proxy" %}', window.location.origin).toString();
+
+  const PAYMENT_CONFIG = {
+    orderId: '{{ order.id }}',
+    paymentUrl: '{{ payment.payment_url|escapejs }}',
+    rpcUrl: RPC_PROXY_URL
+  };
+
+  // DOM elements
+  const payButton = document.getElementById('pay-button');
+  const buttonText = document.getElementById('button-text');
+  const statusMessage = document.getElementById('status-message');
+  const statusText = document.getElementById('status-text');
+
+  // Update status message (Bootstrap alerts)
+  function updateStatus(message, type = 'info') {
+    const map = { info: 'alert-info', success: 'alert-success', error: 'alert-danger' };
+    statusMessage.className = `alert ${map[type] || 'alert-info'}`;
+    statusText.textContent = message;
+  }
+
+  // Update button state
+  function updateButton(text, disabled = false) {
+    if (disabled) {
+      buttonText.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> ${text}`;
+    } else {
+      buttonText.textContent = text;
+    }
+    payButton.disabled = disabled;
+  }
+
+  // Handle payment button click
+  payButton.addEventListener('click', async () => {
+    // Use the bundled SolanaPayment module
+    await window.SolanaPayment.processPayment(PAYMENT_CONFIG, {
+      onStatusChange: (message, type) => {
+        updateStatus(message, type);
+
+        // Update button text based on status
+        if (message.includes('Connecting')) {
+          updateButton('Connecting...', true);
+        } else if (message.includes('Creating')) {
+          updateButton('Preparing...', true);
+        } else if (message.includes('approve')) {
+          updateButton('Approve in wallet...', true);
+        } else if (message.includes('Waiting')) {
+          updateButton('Confirming...', true);
+        } else if (message.includes('Verifying')) {
+          updateButton('Verifying...', true);
+        }
+      },
+      onSuccess: (result, signature) => {
+        console.log('Payment successful:', signature);
+        updateButton('Payment Confirmed!');
+        setTimeout(() => {
+          window.location.href = `/analysis/order/${PAYMENT_CONFIG.orderId}/`;
+        }, 2000);
+      },
+      onError: (error) => {
+        console.error('Payment failed:', error);
+        updateButton('Pay with Solana');
+      }
+    });
+  });
+
+  // Try to connect wallet silently on page load
+  window.addEventListener('load', async () => {
+    const publicKey = await window.SolanaPayment.connectWalletSilently();
+    if (publicKey) {
+      updateStatus('Wallet connected! Click button to pay.', 'success');
+    } else if (!window.SolanaPayment.isWalletInstalled()) {
+      updateStatus('No Solana wallet detected. Please install Phantom, Solflare, or Backpack.', 'error');
+    }
+  });
+</script>
+
+<style>
+  .wallet-address { font-family: monospace; font-size: 0.85rem; word-break: break-all; }
+</style>
+{% endblock %}

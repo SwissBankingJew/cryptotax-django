@@ -65,10 +65,13 @@ npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+package-lock.json
 # legacy frontend-specific paths
 frontend/dist/
 frontend/.vite/
 frontend/.eslintcache
+# Keep the built bundle - we want it in git for deployment
+!cryptotax/static/js/solana-payment.bundle.js
 
 ########################################
 # Environment / Secrets

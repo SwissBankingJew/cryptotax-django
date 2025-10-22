@@ -1,0 +1,266 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment - CryptoTax</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .payment-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        .order-details {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+        }
+        .detail-label {
+            color: #666;
+        }
+        .detail-value {
+            font-weight: 600;
+            color: #333;
+        }
+        .amount {
+            font-size: 32px;
+            color: #14F195;
+            font-weight: bold;
+        }
+        #pay-button {
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #14F195 0%, #9945FF 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: transform 0.2s;
+        }
+        #pay-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        #pay-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .status-message {
+            padding: 16px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+        .status-message.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            display: block;
+        }
+        .status-message.success {
+            background: #e8f5e9;
+            color: #388e3c;
+            display: block;
+        }
+        .status-message.error {
+            background: #ffebee;
+            color: #d32f2f;
+            display: block;
+        }
+        .wallet-address {
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .manual-instructions {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .manual-instructions h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .copy-btn {
+            background: #9945FF;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <h1>Complete Payment</h1>
+
+        <div class="order-details">
+            <div class="detail-row">
+                <span class="detail-label">Wallet to Analyze:</span>
+                <span class="detail-value wallet-address">{{ order.wallet_address }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Order ID:</span>
+                <span class="detail-value">{{ order.id }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Payment Amount:</span>
+                <span class="detail-value amount">${{ payment_amount }} USDC</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Recipient:</span>
+                <span class="detail-value wallet-address">{{ recipient }}</span>
+            </div>
+        </div>
+
+        <div id="status-message" class="status-message info">
+            <span id="status-text">Click the button below to pay with your Solana wallet</span>
+        </div>
+
+        <button id="pay-button">
+            <span id="button-text">Pay with Solana</span>
+        </button>
+
+        <div class="manual-instructions">
+            <h3>Manual Payment Instructions</h3>
+            <p>If the automatic payment doesn't work, you can pay manually:</p>
+            <ol>
+                <li>Open your Solana wallet (Phantom, Solflare, etc.)</li>
+                <li>Send <strong>${{ payment_amount }} USDC</strong> to:</li>
+                <li style="word-break: break-all; font-family: monospace;">
+                    {{ recipient }}
+                    <button class="copy-btn" onclick="navigator.clipboard.writeText('{{ recipient }}')">Copy</button>
+                </li>
+                <li>After sending, paste your transaction signature below and click verify</li>
+            </ol>
+            <input type="text" id="manual-signature" placeholder="Paste transaction signature here" style="width: 100%; padding: 10px; margin: 10px 0; font-family: monospace;">
+            <button id="verify-manual-btn" style="width: 100%; padding: 12px; background: #9945FF; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                Verify Manual Payment
+            </button>
+        </div>
+
+        <p style="color: #666; font-size: 14px; text-align: center;">
+            Supported wallets: Phantom, Solflare, Backpack
+        </p>
+    </div>
+
+    <script>
+        const PAYMENT_CONFIG = {
+            orderId: '{{ order.id }}',
+            recipientAddress: '{{ recipient }}',
+            amountUSD: {{ payment_amount }},
+        };
+
+        const payButton = document.getElementById('pay-button');
+        const buttonText = document.getElementById('button-text');
+        const statusMessage = document.getElementById('status-message');
+        const statusText = document.getElementById('status-text');
+        const verifyManualBtn = document.getElementById('verify-manual-btn');
+        const manualSignatureInput = document.getElementById('manual-signature');
+
+        const updateStatus = (message, type = 'info') => {
+            statusMessage.className = `status-message ${type}`;
+            statusText.textContent = message;
+        };
+
+        const updateButton = (text, disabled = false) => {
+            if (disabled) {
+                buttonText.innerHTML = `<span class="spinner"></span> ${text}`;
+            } else {
+                buttonText.textContent = text;
+            }
+            payButton.disabled = disabled;
+        };
+
+        const verifyPayment = async (signature) => {
+            try {
+                const response = await fetch('/api/payment-verify/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        order_id: PAYMENT_CONFIG.orderId,
+                        signature: signature
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    updateStatus(data.message, 'success');
+                    updateButton('Payment Confirmed!');
+                    setTimeout(() => {
+                        window.location.href = `/analysis/order/${PAYMENT_CONFIG.orderId}/`;
+                    }, 2000);
+                } else {
+                    updateStatus(data.message, 'error');
+                    updateButton('Pay with Solana');
+                }
+            } catch (error) {
+                updateStatus(`Verification error: ${error.message}`, 'error');
+                updateButton('Pay with Solana');
+            }
+        };
+
+        // Manual verification
+        verifyManualBtn.addEventListener('click', async () => {
+            const signature = manualSignatureInput.value.trim();
+            if (!signature) {
+                alert('Please paste a transaction signature');
+                return;
+            }
+            verifyManualBtn.disabled = true;
+            verifyManualBtn.textContent = 'Verifying...';
+            await verifyPayment(signature);
+            verifyManualBtn.disabled = false;
+            verifyManualBtn.textContent = 'Verify Manual Payment';
+        });
+
+        // Automatic payment (simplified - just redirects to Solana Pay URL)
+        payButton.addEventListener('click', () => {
+            updateStatus('For now, please use manual payment instructions below.', 'info');
+            updateButton('Manual Payment Required');
+
+            // TODO: Implement automatic wallet connection
+            // This requires properly loading and using @solana/web3.js and @solana/spl-token
+            // For now, users can pay manually and verify
+        });
+    </script>
+</body>
+</html>

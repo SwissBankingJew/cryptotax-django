@@ -1,0 +1,185 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order {{ order.id }} - CryptoTax</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .status-pending_payment { background: #fff3e0; color: #e65100; }
+        .status-payment_received { background: #e3f2fd; color: #1976d2; }
+        .status-processing { background: #fff9c4; color: #f57f17; }
+        .status-completed { background: #e8f5e9; color: #388e3c; }
+        .status-partial_complete { background: #fff3e0; color: #f57f17; }
+        .status-failed { background: #ffebee; color: #d32f2f; }
+
+        .section {
+            margin: 30px 0;
+        }
+        .section h2 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .detail-label {
+            color: #666;
+        }
+        .detail-value {
+            font-weight: 600;
+            color: #333;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .reports-list {
+            list-style: none;
+            padding: 0;
+        }
+        .report-item {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .download-btn {
+            padding: 8px 16px;
+            background: #9945FF;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .download-btn:hover {
+            background: #7a35cc;
+        }
+        .no-reports {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Order Details</h1>
+
+        <div class="section">
+            <div class="detail-row">
+                <span class="detail-label">Order ID:</span>
+                <span class="detail-value">{{ order.id }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Wallet Address:</span>
+                <span class="detail-value">{{ order.wallet_address }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Status:</span>
+                <span class="status-badge status-{{ order.status }}">
+                    {{ order.get_status_display }}
+                </span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Created:</span>
+                <span class="detail-value">{{ order.created_at }}</span>
+            </div>
+            {% if payment %}
+            <div class="detail-row">
+                <span class="detail-label">Payment Status:</span>
+                <span class="detail-value">{{ payment.get_status_display }}</span>
+            </div>
+            {% if payment.transaction_signature %}
+            <div class="detail-row">
+                <span class="detail-label">Transaction:</span>
+                <span class="detail-value">
+                    <a href="https://solscan.io/tx/{{ payment.transaction_signature }}" target="_blank">
+                        {{ payment.transaction_signature|slice:":16" }}...
+                    </a>
+                </span>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+
+        {% if order.status == 'processing' %}
+        <div class="section">
+            <h2>Processing Status</h2>
+            <p style="color: #666;">Your reports are being generated. This may take a few minutes.</p>
+            <p style="color: #999; font-size: 14px;">
+                This page will automatically refresh when processing is complete.
+            </p>
+        </div>
+        <script>
+            // Auto-refresh every 10 seconds if still processing
+            setTimeout(() => location.reload(), 10000);
+        </script>
+        {% endif %}
+
+        {% if report_files %}
+        <div class="section">
+            <h2>Available Reports</h2>
+            <ul class="reports-list">
+                {% for report in report_files %}
+                <li class="report-item">
+                    <div>
+                        <strong>{{ report.file_type }}</strong>
+                        <br>
+                        <small style="color: #666;">{{ report.file_size_mb }} MB</small>
+                    </div>
+                    <a href="/media/{{ report.file_path }}" class="download-btn" download>
+                        Download CSV
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% else %}
+        <div class="section">
+            <h2>Reports</h2>
+            <div class="no-reports">
+                {% if order.status == 'pending_payment' %}
+                Waiting for payment...
+                {% elif order.status == 'payment_received' or order.status == 'processing' %}
+                Reports are being generated...
+                {% else %}
+                No reports available yet.
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

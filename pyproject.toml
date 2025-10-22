@@ -5,8 +5,15 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "anchorpy>=0.21.0",
+    "base58>=2.1.1",
     "crispy-bootstrap5>=2025.6",
     "django>=5.2.7",
     "django-allauth[socialaccount]>=65.12.1",
     "django-crispy-forms>=2.4",
+    "django-q2>=1.8.0",
+    "dotenv>=0.9.9",
+    "dune-client>=1.9.3",
+    "solders>=0.26.0",
+    "httpx>=0.28.1",
 ]

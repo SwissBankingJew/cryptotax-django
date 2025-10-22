@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -43,7 +43,9 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'crispy_forms',
-    'crispy_bootstrap5'
+    'crispy_bootstrap5',
+    'django_q',
+    'wallet_analysis.apps.WalletAnalysisConfig'
 ]
 
 # django-allauth configuration
@@ -155,3 +157,23 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Django Q2 Configuration
+# Uses SQLite as the queue backend (no Redis needed)
+Q_CLUSTER = {
+    'name': 'cryptotax_queue',
+    'workers': 2,
+    'timeout': 2100,  # 35 minutes max per task (Dune queries can take up to 30 min)
+    'retry': 2400,  # Retry failed tasks after 40 minutes
+    'queue_limit': 50,
+    'bulk': 10,
+    'orm': 'default',  # Use default database (SQLite) as queue
+}
+
+# Media files (user uploads and generated reports)
+MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = '/media/'
+
+# Solana Configuration
+SOLANA_RPC_URL = os.getenv('SOLANA_RPC_URL', 'https://api.mainnet-beta.solana.com')
+SOLANA_RECIPIENT_ADDRESS = os.getenv('SOLANA_RECIPIENT_ADDRESS')
