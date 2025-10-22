@@ -16,4 +16,5 @@ dependencies = [
     "dune-client>=1.9.3",
     "solders>=0.26.0",
     "httpx>=0.28.1",
+    "gunicorn>=23.0.0",
 ]
