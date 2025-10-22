@@ -42,9 +42,15 @@
         </p>
 
         <div class="mt-2">
-          <a class="btn btn-link px-0" href="{% url 'wallet_analysis:create_order' %}">
-            <i class="bi bi-arrow-left"></i> Back
-          </a>
+          {% if is_new_order %}
+            <a class="btn btn-link px-0" href="{% url 'wallet_analysis:create_order' %}">
+              <i class="bi bi-arrow-left"></i> Change Wallet
+            </a>
+          {% else %}
+            <a class="btn btn-link px-0" href="{% url 'wallet_analysis:dashboard' %}">
+              <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+          {% endif %}
         </div>
       </div>
     </div>

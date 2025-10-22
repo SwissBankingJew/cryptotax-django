@@ -1,7 +1,415 @@
 {% extends "base.html" %}
-{% block title %}Home · cryptotax{% endblock %}
+{% block title %}CryptoTax - Complete DeFi Tax Reports for $50{% endblock %}
 {% block content %}
-  <h2>Welcome to cryptotax</h2>
-  <p class="muted">Use the navigation to log in or go to the admin.</p>
+
+<!-- Hero Section -->
+<div class="row justify-content-center text-center py-5">
+  <div class="col-12 col-lg-10">
+    <h1 class="display-4 fw-bold mb-3">
+      Every swap. Every stake. Every NFT sale.<br>
+      <span class="text-primary">Accounted for.</span>
+    </h1>
+    <p class="lead text-muted mb-4">
+      Broken tax software misses half your crypto activity. This on-chain engine doesn't.<br>
+      Get a complete accountant-ready report for $50.
+    </p>
+    {% if user.is_authenticated %}
+      <a href="{% url 'wallet_analysis:create_order' %}" class="btn btn-gradient-solana btn-lg px-5 py-3">
+        Start Analysis
+      </a>
+    {% else %}
+      <a href="{% url 'account_signup' %}" class="btn btn-gradient-solana btn-lg px-5 py-3 me-2">
+        Get Started
+      </a>
+      <a href="{% url 'account_login' %}" class="btn btn-outline-primary btn-lg px-5 py-3">
+        Sign In
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Problem Section -->
+<div class="row justify-content-center py-5 bg-light">
+  <div class="col-12 col-lg-10">
+    <div class="text-center mb-5">
+      <h2 class="h2 fw-bold mb-3">Why Crypto Tax Software Fails DeFi Users</h2>
+      <p class="lead text-muted">Traditional tools aren't built for the complexity of DeFi</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="d-flex">
+          <div class="flex-shrink-0">
+            <i class="bi bi-x-circle-fill text-danger" style="font-size: 2rem;"></i>
+          </div>
+          <div class="flex-grow-1 ms-3">
+            <h4 class="h6 fw-bold">They Miss Half Your Activity</h4>
+            <p class="text-muted mb-0">Can't track complex DeFi interactions, multi-hop swaps, or protocol-specific events</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="d-flex">
+          <div class="flex-shrink-0">
+            <i class="bi bi-x-circle-fill text-danger" style="font-size: 2rem;"></i>
+          </div>
+          <div class="flex-grow-1 ms-3">
+            <h4 class="h6 fw-bold">Incomplete Data = Tax Nightmares</h4>
+            <p class="text-muted mb-0">Missing transactions mean IRS issues and costly accountant time fixing errors</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="d-flex">
+          <div class="flex-shrink-0">
+            <i class="bi bi-x-circle-fill text-danger" style="font-size: 2rem;"></i>
+          </div>
+          <div class="flex-grow-1 ms-3">
+            <h4 class="h6 fw-bold">Manual Exports Are Impossible</h4>
+            <p class="text-muted mb-0">Try tracking 500+ transactions across 10 protocols manually. It doesn't work.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="d-flex">
+          <div class="flex-shrink-0">
+            <i class="bi bi-x-circle-fill text-danger" style="font-size: 2rem;"></i>
+          </div>
+          <div class="flex-grow-1 ms-3">
+            <h4 class="h6 fw-bold">No Audit Trail</h4>
+            <p class="text-muted mb-0">Your accountant can't verify what's missing or confirm completeness</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Data Advantage Section -->
+<div class="row justify-content-center py-5">
+  <div class="col-12 col-lg-10">
+    <div class="text-center mb-5">
+      <h2 class="h2 fw-bold mb-3">Powered by Enterprise Blockchain Infrastructure</h2>
+      <p class="lead text-muted">We don't just scrape your wallet. We query the entire blockchain.</p>
+    </div>
+
+    <div class="row align-items-center mb-5">
+      <div class="col-md-6">
+        <div class="card border-0 shadow-sm p-4">
+          <h3 class="h5 fw-bold mb-3">Built on Dune Analytics</h3>
+          <p class="text-muted mb-3">
+            We use the same data infrastructure that professional crypto analysts and researchers rely on:
+          </p>
+          <ul class="text-muted">
+            <li><strong>Terabytes of indexed blockchain data</strong></li>
+            <li><strong>Every transaction, every block, every protocol</strong></li>
+            <li><strong>Real-time blockchain state queries</strong></li>
+            <li><strong>Battle-tested by the crypto industry</strong></li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="text-center p-4">
+          <div class="bg-light rounded p-5 border">
+            <div class="mb-3">
+              <i class="bi bi-wallet2" style="font-size: 3rem; color: #9945FF;"></i>
+            </div>
+            <div class="mb-3">
+              <i class="bi bi-arrow-down" style="font-size: 2rem; color: #14F195;"></i>
+            </div>
+            <div class="mb-3">
+              <i class="bi bi-database-fill" style="font-size: 3rem; color: #9945FF;"></i>
+              <p class="small text-muted mt-2 mb-0">Indexed Blockchain Database</p>
+            </div>
+            <div class="mb-3">
+              <i class="bi bi-arrow-down" style="font-size: 2rem; color: #14F195;"></i>
+            </div>
+            <div>
+              <i class="bi bi-file-earmark-spreadsheet" style="font-size: 3rem; color: #9945FF;"></i>
+              <p class="small text-muted mt-2 mb-0">Complete Tax Reports</p>
+            </div>
+          </div>
+          <p class="text-muted small mt-3">Direct blockchain queries = Zero missed transactions</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-info">
+      <div class="d-flex align-items-start">
+        <i class="bi bi-info-circle-fill me-3 mt-1" style="font-size: 1.5rem;"></i>
+        <div>
+          <strong>Why This Matters:</strong> Traditional tax tools rely on third-party APIs that break, miss events, or can't see complex DeFi interactions. We query the source of truth: the blockchain itself.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Features Section -->
+<div class="row g-4 py-5 bg-light">
+  <div class="col-12 text-center mb-4">
+    <h2 class="h3 fw-bold">What You Get</h2>
+    <p class="text-muted">Professional-grade reports for DeFi users and their accountants</p>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body text-center p-4">
+        <div class="mb-3">
+          <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+        </div>
+        <h3 class="h5 fw-bold mb-3">Complete Coverage</h3>
+        <p class="text-muted mb-0">
+          DeFi trades, swaps, liquidity pools, NFT transactions, and token transfers. Every transaction tracked.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body text-center p-4">
+        <div class="mb-3">
+          <i class="bi bi-lightning-fill text-warning" style="font-size: 3rem;"></i>
+        </div>
+        <h3 class="h5 fw-bold mb-3">Fast & Simple</h3>
+        <p class="text-muted mb-0">
+          Enter your wallet address, pay with USDC on Solana, and download your CSV reports. Takes minutes, not hours.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body text-center p-4">
+        <div class="mb-3">
+          <i class="bi bi-shield-check text-primary" style="font-size: 3rem;"></i>
+        </div>
+        <h3 class="h5 fw-bold mb-3">Accountant-Ready</h3>
+        <p class="text-muted mb-0">
+          Export detailed CSV reports formatted for tax professionals. No more spreadsheet nightmares.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Report Preview Section -->
+<div class="row justify-content-center py-5">
+  <div class="col-12 col-lg-10">
+    <div class="text-center mb-5">
+      <h2 class="h2 fw-bold mb-3">See What You Get</h2>
+      <p class="lead text-muted">Comprehensive CSV reports covering every type of DeFi activity</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body text-center p-4">
+            <div class="bg-light rounded p-4 mb-3" style="min-height: 120px; display: flex; align-items: center; justify-content: center;">
+              <i class="bi bi-file-earmark-spreadsheet" style="font-size: 4rem; color: #9945FF;"></i>
+            </div>
+            <h4 class="h6 fw-bold mb-2">DeFi Trades & Swaps</h4>
+            <p class="text-muted small mb-0">Every swap, trade, and token exchange with prices, gas costs, and protocols</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body text-center p-4">
+            <div class="bg-light rounded p-4 mb-3" style="min-height: 120px; display: flex; align-items: center; justify-content: center;">
+              <i class="bi bi-file-earmark-spreadsheet" style="font-size: 4rem; color: #14F195;"></i>
+            </div>
+            <h4 class="h6 fw-bold mb-2">Liquidity Pool Events</h4>
+            <p class="text-muted small mb-0">Add/remove liquidity, LP rewards, impermanent loss tracking</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body text-center p-4">
+            <div class="bg-light rounded p-4 mb-3" style="min-height: 120px; display: flex; align-items: center; justify-content: center;">
+              <i class="bi bi-file-earmark-spreadsheet" style="font-size: 4rem; color: #9945FF;"></i>
+            </div>
+            <h4 class="h6 fw-bold mb-2">NFT & Token Transfers</h4>
+            <p class="text-muted small mb-0">All NFT sales, transfers, and token movements with full audit trail</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center mt-4">
+      <p class="text-muted small"><em>Placeholder images - actual reports will include detailed transaction data, timestamps, values, and protocol information</em></p>
+    </div>
+  </div>
+</div>
+
+<!-- Dual Audience Section -->
+<div class="row py-5 bg-light">
+  <div class="col-12 col-lg-10 mx-auto">
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="card border-0 shadow h-100">
+          <div class="card-body p-5">
+            <div class="mb-3">
+              <i class="bi bi-person-check-fill" style="font-size: 3rem; color: #9945FF;"></i>
+            </div>
+            <h3 class="h4 fw-bold mb-3">For DeFi Users</h3>
+            <p class="text-muted mb-3">Stop worrying about missed transactions</p>
+            <ul class="text-muted">
+              <li>Complete coverage of all your DeFi activity</li>
+              <li>No manual CSV exports or spreadsheet hell</li>
+              <li>Peace of mind for tax season</li>
+              <li>One-time payment, instant results</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card border-0 shadow h-100">
+          <div class="card-body p-5">
+            <div class="mb-3">
+              <i class="bi bi-briefcase-fill" style="font-size: 3rem; color: #14F195;"></i>
+            </div>
+            <h3 class="h4 fw-bold mb-3">For Accountants</h3>
+            <p class="text-muted mb-3">Give your clients data you can trust</p>
+            <ul class="text-muted">
+              <li>Complete audit trail with blockchain verification</li>
+              <li>Professional CSV format ready for tax software</li>
+              <li>No missing transactions = no liability risk</li>
+              <li>Source data from Dune Analytics enterprise infrastructure</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ Section -->
+<div class="row justify-content-center py-5">
+  <div class="col-12 col-lg-8">
+    <div class="text-center mb-5">
+      <h2 class="h2 fw-bold mb-3">Frequently Asked Questions</h2>
+    </div>
+
+    <div class="accordion" id="faqAccordion">
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+            What blockchain networks do you support?
+          </button>
+        </h3>
+        <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            We currently support all EVM-compatible chains (Ethereum, Polygon, Arbitrum, Optimism, Base, and more). More chains coming soon! We're powered by Dune Analytics, so we have access to comprehensive data across all major blockchains.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+            How long does the analysis take?
+          </button>
+        </h3>
+        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            Most wallet analyses complete within 5-15 minutes depending on transaction volume. You can check your dashboard to see when your reports are ready.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+            What DeFi protocols do you cover?
+          </button>
+        </h3>
+        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            We cover all major DeFi protocols including Uniswap, Aave, Curve, Compound, Balancer, Sushiswap, and hundreds more. Because we query the blockchain directly, we can track any protocol activity.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+            Is my wallet data private and secure?
+          </button>
+        </h3>
+        <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            Yes. We only need your public wallet address - we never ask for private keys or seed phrases. All blockchain data is already public. We query this data securely and your reports are only accessible to you.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+            What if I have multiple wallets?
+          </button>
+        </h3>
+        <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            Each wallet requires a separate $50 analysis. This ensures complete and accurate reporting for each address. You can analyze as many wallets as you need from your dashboard.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Trust Section -->
+<div class="row justify-content-center py-5 bg-light">
+  <div class="col-12 col-lg-8 text-center">
+    <h2 class="h3 fw-bold mb-4">Built on Trust & Transparency</h2>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <i class="bi bi-shield-lock-fill text-primary" style="font-size: 2.5rem;"></i>
+        <h4 class="h6 fw-bold mt-3 mb-2">Secure & Private</h4>
+        <p class="text-muted small mb-0">No private keys required. Only public wallet addresses.</p>
+      </div>
+      <div class="col-md-4">
+        <i class="bi bi-database-fill-check text-success" style="font-size: 2.5rem;"></i>
+        <h4 class="h6 fw-bold mt-3 mb-2">Enterprise Data</h4>
+        <p class="text-muted small mb-0">Powered by Dune Analytics infrastructure</p>
+      </div>
+      <div class="col-md-4">
+        <i class="bi bi-check-circle-fill text-success" style="font-size: 2.5rem;"></i>
+        <h4 class="h6 fw-bold mt-3 mb-2">100% Complete</h4>
+        <p class="text-muted small mb-0">Direct blockchain queries = zero missed transactions</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pricing CTA -->
+<div class="row justify-content-center py-5">
+  <div class="col-12 col-md-8 col-lg-6">
+    <div class="card border-primary shadow">
+      <div class="card-body text-center p-5">
+        <h2 class="h3 fw-bold mb-3">Ready to get started?</h2>
+        <p class="display-4 fw-bold text-success mb-3">$50</p>
+        <p class="text-muted mb-4">One-time payment. Complete analysis. All reports included.</p>
+        {% if user.is_authenticated %}
+          <a href="{% url 'wallet_analysis:create_order' %}" class="btn btn-gradient-solana btn-lg px-5">
+            Analyze Your Wallet
+          </a>
+        {% else %}
+          <a href="{% url 'account_signup' %}" class="btn btn-gradient-solana btn-lg px-5">
+            Sign Up Now
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 

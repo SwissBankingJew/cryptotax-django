@@ -8,6 +8,9 @@ from . import views
 app_name = 'wallet_analysis'
 
 urlpatterns = [
+    # Dashboard
+    path('dashboard/', views.dashboard_view, name='dashboard'),
+
     # Order creation
     path('analysis/new/', views.create_order_view, name='create_order'),
 
@@ -16,6 +19,9 @@ urlpatterns = [
 
     # Order detail
     path('analysis/order/<uuid:order_id>/', views.order_detail_view, name='order_detail'),
+
+    # Report download
+    path('reports/<uuid:report_id>/download/', views.download_report_view, name='download_report'),
 
     # API endpoints
     path('api/payment-verify/', views.verify_payment_api, name='verify_payment'),

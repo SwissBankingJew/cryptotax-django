@@ -1,185 +1,205 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order {{ order.id }} - CryptoTax</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            max-width: 900px;
-            margin: 50px auto;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            margin-top: 0;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 16px;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .status-pending_payment { background: #fff3e0; color: #e65100; }
-        .status-payment_received { background: #e3f2fd; color: #1976d2; }
-        .status-processing { background: #fff9c4; color: #f57f17; }
-        .status-completed { background: #e8f5e9; color: #388e3c; }
-        .status-partial_complete { background: #fff3e0; color: #f57f17; }
-        .status-failed { background: #ffebee; color: #d32f2f; }
 
-        .section {
-            margin: 30px 0;
-        }
-        .section h2 {
-            font-size: 20px;
-            color: #333;
-            margin-bottom: 15px;
-        }
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .detail-label {
-            color: #666;
-        }
-        .detail-value {
-            font-weight: 600;
-            color: #333;
-            font-family: monospace;
-            font-size: 14px;
-        }
-        .reports-list {
-            list-style: none;
-            padding: 0;
-        }
-        .report-item {
-            background: #f8f9fa;
-            padding: 16px;
-            border-radius: 8px;
-            margin: 10px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .download-btn {
-            padding: 8px 16px;
-            background: #9945FF;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        .download-btn:hover {
-            background: #7a35cc;
-        }
-        .no-reports {
-            color: #999;
-            font-style: italic;
-            text-align: center;
-            padding: 40px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Order Details</h1>
+{% block title %}Order {{ order.id|truncatechars:12 }} - CryptoTax{% endblock %}
 
-        <div class="section">
-            <div class="detail-row">
-                <span class="detail-label">Order ID:</span>
-                <span class="detail-value">{{ order.id }}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Wallet Address:</span>
-                <span class="detail-value">{{ order.wallet_address }}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Status:</span>
-                <span class="status-badge status-{{ order.status }}">
-                    {{ order.get_status_display }}
-                </span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Created:</span>
-                <span class="detail-value">{{ order.created_at }}</span>
-            </div>
-            {% if payment %}
-            <div class="detail-row">
-                <span class="detail-label">Payment Status:</span>
-                <span class="detail-value">{{ payment.get_status_display }}</span>
-            </div>
-            {% if payment.transaction_signature %}
-            <div class="detail-row">
-                <span class="detail-label">Transaction:</span>
-                <span class="detail-value">
-                    <a href="https://solscan.io/tx/{{ payment.transaction_signature }}" target="_blank">
-                        {{ payment.transaction_signature|slice:":16" }}...
-                    </a>
-                </span>
-            </div>
-            {% endif %}
-            {% endif %}
+{% block content %}
+
+<!-- Breadcrumb -->
+<div class="row mb-3">
+  <div class="col-12">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'wallet_analysis:dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Order Details</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<!-- Page Header -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center">
+      <h1 class="h3 fw-bold mb-0">Order Details</h1>
+      <span class="status-badge status-{{ order.status }} fs-6">
+        {{ order.get_status_display }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- Order Information -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h5 fw-bold mb-3">Order Information</h2>
+        <div class="table-responsive">
+          <table class="table table-borderless mb-0">
+            <tbody>
+              <tr>
+                <td class="text-muted" style="width: 200px;">Order ID</td>
+                <td><code class="text-dark">{{ order.id }}</code></td>
+              </tr>
+              <tr>
+                <td class="text-muted">Wallet Address</td>
+                <td><code class="text-dark">{{ order.wallet_address }}</code></td>
+              </tr>
+              <tr>
+                <td class="text-muted">Created</td>
+                <td>{{ order.created_at|date:"F d, Y \a\t g:i A" }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Amount</td>
+                <td class="fw-bold text-success">${{ order.payment_amount_usd }} USDC</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-        {% if order.status == 'processing' %}
-        <div class="section">
-            <h2>Processing Status</h2>
-            <p style="color: #666;">Your reports are being generated. This may take a few minutes.</p>
-            <p style="color: #999; font-size: 14px;">
-                This page will automatically refresh when processing is complete.
-            </p>
+<!-- Payment Information -->
+{% if payment %}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h5 fw-bold mb-3">Payment Information</h2>
+        <div class="table-responsive">
+          <table class="table table-borderless mb-0">
+            <tbody>
+              <tr>
+                <td class="text-muted" style="width: 200px;">Payment Status</td>
+                <td>
+                  <span class="badge bg-success">{{ payment.get_status_display }}</span>
+                </td>
+              </tr>
+              {% if payment.transaction_signature %}
+              <tr>
+                <td class="text-muted">Transaction</td>
+                <td>
+                  <a href="https://solscan.io/tx/{{ payment.transaction_signature }}" target="_blank" class="text-decoration-none">
+                    <code>{{ payment.transaction_signature|slice:":16" }}...</code>
+                    <i class="bi bi-box-arrow-up-right ms-1"></i>
+                  </a>
+                </td>
+              </tr>
+              <tr>
+                <td class="text-muted">Confirmed At</td>
+                <td>{{ payment.confirmed_at|date:"F d, Y \a\t g:i A" }}</td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
         </div>
-        <script>
-            // Auto-refresh every 10 seconds if still processing
-            setTimeout(() => location.reload(), 10000);
-        </script>
-        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Processing Status Alert -->
+{% if order.status == 'processing' or order.status == 'payment_received' %}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="alert alert-info" role="alert">
+      <div class="d-flex align-items-center">
+        <div class="spinner-border spinner-border-sm me-3" role="status">
+          <span class="visually-hidden">Processing...</span>
+        </div>
+        <div>
+          <strong>Processing Your Reports</strong>
+          <p class="mb-0 mt-1">Your wallet analysis is in progress. This may take a few minutes. This page will automatically refresh when complete.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  // Auto-refresh every 10 seconds if still processing
+  setTimeout(() => location.reload(), 10000);
+</script>
+{% endif %}
+
+<!-- Reports Section -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h5 fw-bold mb-3">
+          <i class="bi bi-file-earmark-spreadsheet me-2"></i>Reports
+        </h2>
 
         {% if report_files %}
-        <div class="section">
-            <h2>Available Reports</h2>
-            <ul class="reports-list">
-                {% for report in report_files %}
-                <li class="report-item">
-                    <div>
-                        <strong>{{ report.file_type }}</strong>
-                        <br>
-                        <small style="color: #666;">{{ report.file_size_mb }} MB</small>
-                    </div>
-                    <a href="/media/{{ report.file_path }}" class="download-btn" download>
-                        Download CSV
-                    </a>
-                </li>
-                {% endfor %}
-            </ul>
+        <div class="list-group list-group-flush">
+          {% for report in report_files %}
+          <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <div>
+              <h3 class="h6 fw-semibold mb-1">{{ report.file_type|title }}</h3>
+              <small class="text-muted">
+                {{ report.file_name }} &middot; {{ report.file_size_mb }} MB
+              </small>
+            </div>
+            <a href="{% url 'wallet_analysis:download_report' report.id %}" class="btn btn-gradient-solana btn-sm">
+              <i class="bi bi-download"></i> Download CSV
+            </a>
+          </div>
+          {% endfor %}
         </div>
         {% else %}
-        <div class="section">
-            <h2>Reports</h2>
-            <div class="no-reports">
-                {% if order.status == 'pending_payment' %}
-                Waiting for payment...
-                {% elif order.status == 'payment_received' or order.status == 'processing' %}
-                Reports are being generated...
-                {% else %}
-                No reports available yet.
-                {% endif %}
-            </div>
+        <div class="text-center py-5">
+          <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+          <p class="text-muted mt-3 mb-0">
+            {% if order.status == 'pending_payment' %}
+            Waiting for payment to complete...
+            {% elif order.status == 'payment_received' or order.status == 'processing' %}
+            Reports are being generated...
+            {% else %}
+            No reports available yet.
+            {% endif %}
+          </p>
         </div>
         {% endif %}
+      </div>
     </div>
-</body>
-</html>
+  </div>
+</div>
+
+<!-- Query Jobs Section (Optional - for debugging/transparency) -->
+{% if query_jobs %}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h5 fw-bold mb-3">Processing Status</h2>
+        <div class="list-group list-group-flush">
+          {% for job in query_jobs %}
+          <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <div>
+              <span class="fw-semibold">{{ job.query_name|title }}</span>
+            </div>
+            <div>
+              {% if job.status == 'completed' %}
+                <span class="badge bg-success">Completed</span>
+              {% elif job.status == 'running' %}
+                <span class="badge bg-primary">Running</span>
+              {% elif job.status == 'queued' %}
+                <span class="badge bg-secondary">Queued</span>
+              {% elif job.status == 'failed' %}
+                <span class="badge bg-danger">Failed</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

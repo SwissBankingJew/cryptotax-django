@@ -118,3 +118,5 @@ site/
 .idea/
 .DS_Store
 Thumbs.db
+
+db.sqlite3

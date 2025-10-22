@@ -91,8 +91,10 @@ def create_order_view(request):
             token_mint=SolanaPayment.USDC_MINT
         )
 
-        # Redirect to payment page
-        return redirect('wallet_analysis:payment_page', order_id=order.id)
+        # Redirect to payment page with 'new' parameter to indicate fresh order
+        from django.urls import reverse
+        payment_url_path = reverse('wallet_analysis:payment_page', kwargs={'order_id': order.id})
+        return redirect(f"{payment_url_path}?new=1")
 
     # GET request - show form
     return render(request, 'wallet_analysis/create_order.html')
@@ -121,6 +123,9 @@ def payment_page_view(request, order_id):
     if payment.is_paid:
         return redirect('wallet_analysis:order_detail', order_id=order.id)
 
+    # Check if this is a newly created order (from create_order view)
+    is_new_order = request.GET.get('new', '0') == '1'
+
     context = {
         'order': order,
         'payment': payment,
@@ -130,6 +135,7 @@ def payment_page_view(request, order_id):
         'token_mint': payment.token_mint,
         'amount_lamports': payment.amount_expected,
         'rpc_url': settings.SOLANA_RPC_URL,
+        'is_new_order': is_new_order,
     }
 
     return render(request, 'wallet_analysis/payment.html', context)
@@ -332,3 +338,62 @@ def order_detail_view(request, order_id):
     }
 
     return render(request, 'wallet_analysis/order_detail.html', context)
+
+
+@login_required
+def dashboard_view(request):
+    """
+    Display user's dashboard with all their wallet analysis orders.
+
+    Shows order status, wallet addresses, and quick actions.
+    """
+    # Get all orders for the current user
+    orders = WalletAnalysisOrder.objects.filter(
+        user=request.user
+    ).select_related('solana_payment').prefetch_related('report_files').order_by('-created_at')
+
+    context = {
+        'orders': orders,
+    }
+
+    return render(request, 'wallet_analysis/dashboard.html', context)
+
+
+@login_required
+def download_report_view(request, report_id):
+    """
+    Serve a report file for download.
+
+    Verifies that the user owns the order before allowing download.
+
+    Args:
+        report_id: UUID of the report file
+    """
+    from django.http import FileResponse, Http404
+    from .models import ReportFile
+
+    # Get report and verify ownership
+    try:
+        report = ReportFile.objects.select_related('order').get(id=report_id)
+    except ReportFile.DoesNotExist:
+        raise Http404("Report not found")
+
+    # Verify user owns this report's order
+    if report.order.user != request.user:
+        raise Http404("Report not found")
+
+    # Get file path
+    file_path = report.get_absolute_path()
+
+    # Check if file exists
+    if not file_path.exists():
+        raise Http404("Report file not found on disk")
+
+    # Serve file
+    response = FileResponse(
+        open(file_path, 'rb'),
+        as_attachment=True,
+        filename=report.file_name
+    )
+
+    return response

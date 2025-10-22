@@ -1,26 +1,34 @@
 {% load i18n %}
 <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
   <div class="container">
-    <a class="navbar-brand" href="/">cryptotax</a>
+    <a class="navbar-brand fw-bold" href="/">cryptotax</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarMain">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item"><a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">{% translate "Home" %}</a></li>
-        <li class="nav-item"><a class="nav-link" href="/admin/">{% translate "Admin" %}</a></li>
+        {% if request.user.is_authenticated %}
+          <li class="nav-item"><a class="nav-link {% if '/dashboard/' in request.path %}active{% endif %}" href="{% url 'wallet_analysis:dashboard' %}">{% translate "Dashboard" %}</a></li>
+        {% endif %}
+        {% if request.user.is_staff %}
+          <li class="nav-item"><a class="nav-link" href="/admin/">{% translate "Admin" %}</a></li>
+        {% endif %}
       </ul>
       <div class="d-flex align-items-center gap-2">
         {% if request.user.is_authenticated %}
-          <span class="navbar-text d-none d-md-inline">{% translate "Hi," %} {{ request.user.get_short_name|default:request.user.email|default:request.user.username }}</span>
-          <a class="btn btn-outline-secondary" href="{% url 'account_logout' %}">{% translate "Logout" %}</a>
+          <a class="btn btn-gradient-solana btn-sm" href="{% url 'wallet_analysis:create_order' %}">
+            <i class="bi bi-plus-lg"></i> {% translate "New Analysis" %}
+          </a>
+          <span class="navbar-text d-none d-lg-inline text-muted">{{ request.user.get_short_name|default:request.user.email|default:request.user.username }}</span>
+          <a class="btn btn-outline-secondary btn-sm" href="{% url 'account_logout' %}">{% translate "Logout" %}</a>
         {% else %}
-          <a class="btn btn-primary" href="{% url 'account_login' %}">{% translate "Sign in" %}</a>
-          <a class="btn btn-outline-primary" href="{% url 'account_signup' %}">{% translate "Sign up" %}</a>
+          <a class="btn btn-outline-primary" href="{% url 'account_login' %}">{% translate "Sign in" %}</a>
+          <a class="btn btn-gradient-solana" href="{% url 'account_signup' %}">{% translate "Sign up" %}</a>
         {% endif %}
       </div>
     </div>
   </div>
-  
+
 </nav>
 
