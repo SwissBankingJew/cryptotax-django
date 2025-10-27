@@ -24,4 +24,6 @@ dependencies = [
     "factory-boy>=3.3.0",
     "faker>=33.1.0",
     "responses>=0.25.0",
+    "x402>=0.2.1",
+    "uvicorn>=0.38.0",
 ]

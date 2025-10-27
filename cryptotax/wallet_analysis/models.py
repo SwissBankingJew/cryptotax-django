@@ -306,6 +306,11 @@ class DuneQueryJob(models.Model):
         help_text='When query execution completed'
     )
 
+    arguments = models.JSONField(default=dict)
+
+    result_csv = models.TextField(blank=True, null=True)
+
+
     class Meta:
         ordering = ['-created_at']
         verbose_name = 'Dune Query Job'
@@ -315,7 +320,7 @@ class DuneQueryJob(models.Model):
             models.Index(fields=['status', '-created_at']),
         ]
         # Prevent duplicate queries for same order
-        unique_together = [['order', 'query_name']]
+        unique_together = [['order', 'query_name', 'arguments']]
 
     def __str__(self):
         return f"{self.query_name} for Order {self.order.id} - {self.get_status_display()}"
@@ -456,6 +461,12 @@ def get_csv_upload_path(query_execution, filename):
     return f'analysis_results/{query_execution.run.order.id}/{query_execution.run.id}/{query_execution.dune_query_id}.csv'    
 
 
+class X402Query(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    wallet = models.CharField(max_length=48)
+    created_at = models.DateTimeField(auto_now_add=True)
+    result = models.TextField(blank=True, null=True)
+
 class QueryExecution(models.Model):
     """Single query execution within a run"""
     STATUS_PENDING = 'pending'
@@ -528,3 +539,6 @@ class QueryExecution(models.Model):
         if self.started_at and self.completed_at:
             return (self.completed_at - self.started_at).total_seconds()
         return None
+
+
+    

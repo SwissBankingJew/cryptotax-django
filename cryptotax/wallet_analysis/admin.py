@@ -8,8 +8,9 @@ from django.utils.safestring import mark_safe
 from django_q.tasks import async_task
 from django.utils import timezone
 
-from .models import WalletAnalysisOrder, SolanaPayment, DuneQueryJob, ReportFile
+from .models import WalletAnalysisOrder, SolanaPayment, DuneQueryJob, ReportFile, X402Query
 
+admin.site.register(X402Query)
 
 @admin.register(WalletAnalysisOrder)
 class WalletAnalysisOrderAdmin(admin.ModelAdmin):

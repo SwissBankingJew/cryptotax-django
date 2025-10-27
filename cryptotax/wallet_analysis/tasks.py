@@ -2,6 +2,7 @@
 Django Q2 background tasks for wallet analysis processing.
 """
 
+from ast import arguments
 from datetime import datetime
 import os
 import time
@@ -9,11 +10,12 @@ from pathlib import Path
 from django.utils import timezone
 from django.conf import settings
 from django.core.mail import send_mail
+from django_q.tasks import async_task
 from dune_client.client import DuneClient
 from dune_client.query import QueryBase
 from dune_client.types import QueryParameter
 
-from .models import AnalysisRun, SolanaPayment, WalletAnalysisOrder, DuneQueryJob, ReportFile
+from .models import AnalysisRun, SolanaPayment, WalletAnalysisOrder, DuneQueryJob, ReportFile, X402Query
 from django.db import IntegrityError
 from .solana_utils import search_transactions_by_reference, verify_transaction_on_chain
 
@@ -71,7 +73,7 @@ def check_pending_payments():
                 # Queue Dune query execution
                 from django_q.tasks import async_task
                 async_task(
-                    'wallet_analysis.tasks.execute_wallet_analysis',
+                    'cryptotax.wallet_analysis.tasks.execute_wallet_analysis',
                     order_id=str(order.id)
                 )
 
@@ -341,9 +343,41 @@ def execute_wallet_analysis(order_id):
 
 def solana_analysis(order_id):
     order = WalletAnalysisOrder.objects.get(id=order_id)
-    analysis_run = AnalysisRun.objects.create(order=order)
 
+    # check if there are existing jobs?? why idk maybe good to know?! IDK
+    existing_jobs = DuneQueryJob.objects.filter(order=order)
     
+    if len(existing_jobs) > 0:
+        print("why do jobs already exist wtf")
+        raise Exception(f"Dune Query Jobs already exist for: {order_id}")
+
+    # We query from 2024-01-01 to 2025-12-31, 6 month interval
+    for start, end in [
+            (datetime(2024, 1, 1), datetime(2024, 5, 31)),
+            (datetime(2024, 6, 1), datetime(2024, 12, 31)),
+            (datetime(2025, 1, 1), datetime(2025, 6, 1)),
+            (datetime(2025, 6, 1), datetime(2025, 12, 31)),
+    ]:
+        solana_token_transfers_job = DuneQueryJob(
+            order=order,
+            arguments={
+                "wallet": order.wallet_address,
+                "start": start.strftime("%Y-%m-%d %H:%M:%S"),
+                "end": end.strftime("%Y-%m-%d %H:%M:%S")
+            },
+            query_name="solana_token_transfers",
+            dune_query_id=6022882            
+        )
+        solana_token_transfers_job.save()
+        async_task(
+            'cryptotax.wallet_analysis.dune_analysis.get_solana_token_transfers_job',
+            solana_token_transfers_job.id,
+            order.wallet_address,
+            start,
+            end
+        )
+
+
 
 
 # def send_completion_email(order, completed_count, failed_count):
@@ -423,4 +457,17 @@ def solana_analysis(order_id):
         # Don't raise - email failure shouldn't fail the entire task
 
 
-        
+
+
+def run_analysis_x402(query_id):
+    try:
+        query = X402Query.objects.get(id=query_id)
+    except X402Query.DoesNotExist:
+        return "Query not found"
+
+    time.sleep(10)
+
+    query.result = "this,is,a,result,value,csv,"
+    query.save()
+
+    return f"Analysis completed for {query_id}"
