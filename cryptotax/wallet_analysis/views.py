@@ -35,6 +35,11 @@ def validate_evm_address(address: str) -> bool:
     return bool(re.match(pattern, address))
 
 
+def validate_sol_address(address: str) -> bool:
+    pattern = r'^[1-9A-HJ-NP-Za-km-z]{32,44}$'
+    return bool(re.match(pattern, address))
+
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def create_order_view(request):
@@ -53,9 +58,9 @@ def create_order_view(request):
                 'error': 'Please enter a wallet address'
             })
 
-        if not validate_evm_address(wallet_address):
+        if not validate_sol_address(wallet_address):
             return render(request, 'wallet_analysis/create_order.html', {
-                'error': 'Invalid EVM wallet address. Must start with 0x and be 42 characters long.',
+                'error': 'Invalid SVM wallet address.',
                 'wallet_address': wallet_address
             })
 
@@ -88,7 +93,7 @@ def create_order_view(request):
             recipient_address=recipient,
             amount_expected=int(order.payment_amount_usd * 1_000_000),  # Convert to lamports
             token_type=SolanaPayment.TOKEN_USDC,
-            token_mint=SolanaPayment.USDC_MINT
+            token_mint=settings.USDC_MINT  # Use network-aware mint from settings
         )
 
         # Redirect to payment page with 'new' parameter to indicate fresh order
@@ -184,14 +189,29 @@ def verify_payment_api(request):
                 'order_status': payment.order.status
             })
 
-        # Verify transaction on blockchain
-        is_valid = verify_transaction_on_chain(
-            signature=signature,
-            recipient=payment.recipient_address,
-            expected_amount=payment.amount_expected,
-            token_mint=payment.token_mint,
-            reference=payment.reference
-        )
+        # Verify transaction on blockchain with retry logic
+        # Transaction might not be immediately available after confirmation
+        is_valid = False
+        max_retries = 10
+        retry_delay = 2  # seconds
+
+        for attempt in range(max_retries):
+            is_valid = verify_transaction_on_chain(
+                signature=signature,
+                recipient=payment.recipient_address,
+                expected_amount=payment.amount_expected,
+                token_mint=payment.token_mint,
+                reference=payment.reference
+            )
+
+            if is_valid:
+                break
+
+            # If not the last attempt, wait and retry
+            if attempt < max_retries - 1:
+                print(f"Verification attempt {attempt + 1} failed, retrying in {retry_delay}s...")
+                import time
+                time.sleep(retry_delay)
 
         if is_valid:
             # Update payment status
@@ -306,7 +326,86 @@ def payment_status_api(request, order_id):
             'error': str(e)
         }, status=500)
 
+@login_required
+@require_http_methods(["GET", "POST"])
+def verify_signature_view(request, order_id):
+    """
+    Manual verification page to check a submitted transaction signature against
+    the expected payment parameters for an order. On success, updates DB and
+    redirects to the order detail (PRG). On failure, re-renders with error.
+    """
 
+    # Ensure the order belongs to the current user
+    order = get_object_or_404(WalletAnalysisOrder, id=order_id, user=request.user)
+
+    # Get payment details for this order
+    try:
+        payment = order.solana_payment
+    except SolanaPayment.DoesNotExist:
+        return render(request, 'wallet_analysis/verify_signature.html', {
+            'order': order,
+            'payment': None,
+            'error': 'No payment record found for this order.'
+        })
+
+    if request.method == 'POST':
+        # Accept either 'signature' or legacy 'tx_signature' field
+        signature = (request.POST.get('signature') or request.POST.get('tx_signature') or '').strip()
+
+        if not signature:
+            return render(request, 'wallet_analysis/verify_signature.html', {
+                'order': order,
+                'payment': payment,
+                'submitted_signature': '',
+                'error': 'Please enter a transaction signature.'
+            })
+
+        # Verify on-chain (no retry here; this page is the manual fallback)
+        is_valid = verify_transaction_on_chain(
+            signature=signature,
+            recipient=payment.recipient_address,
+            expected_amount=payment.amount_expected,
+            token_mint=payment.token_mint,
+            reference=payment.reference
+        )
+
+        if is_valid:
+            # Update payment status and order
+            payment.transaction_signature = signature
+            payment.status = SolanaPayment.STATUS_CONFIRMED
+            payment.confirmed_at = timezone.now()
+            payment.save()
+
+            order.status = WalletAnalysisOrder.STATUS_PAYMENT_RECEIVED
+            order.save()
+
+            # Kick off analysis tasks (same behavior as API verification)
+            async_task('wallet_analysis.tasks.execute_wallet_analysis', order_id=str(order.id))
+
+            from django.contrib import messages
+            messages.success(request, 'Payment verified successfully. Your reports are being generated.')
+            return redirect('wallet_analysis:order_detail', order_id=order.id)
+
+        # Failed verification: show error and keep the form
+        from django.contrib import messages
+        messages.error(request, 'Verification failed. Signature does not match expected parameters.')
+        return render(request, 'wallet_analysis/verify_signature.html', {
+            'order': order,
+            'payment': payment,
+            'submitted_signature': signature,
+            'error': 'Verification failed. Please double-check the signature.'
+        })
+
+    # GET
+    return render(request, 'wallet_analysis/verify_signature.html', {
+        'order': order,
+        'payment': payment
+    })
+
+
+        
+
+    
 @login_required
 def order_detail_view(request, order_id):
     """
@@ -397,3 +496,4 @@ def download_report_view(request, report_id):
     )
 
     return response
+

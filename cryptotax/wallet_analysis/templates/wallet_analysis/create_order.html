@@ -7,8 +7,9 @@
   <div class="col-12 col-md-8 col-lg-6">
     <div class="card shadow-sm">
       <div class="card-body p-4">
-        <h1 class="h4 mb-3">Analyze Your Wallet</h1>
-        <p class="display-6 fw-bold text-success mb-4" style="font-size:2rem;">
+        <h1 class="h4 mb-3">Analyze Your Solana Wallet</h1>
+	<h3 class="h6 mb-3">We only support Solana wallets—more networks soon!</h3>
+	<p class="display-6 fw-bold text-success mb-4" style="font-size:2rem;">
           $50 USDC
         </p>
 
@@ -19,19 +20,19 @@
         <form method="post" novalidate>
           {% csrf_token %}
           <div class="mb-3">
-            <label for="wallet_address" class="form-label">EVM Wallet Address</label>
+            <label for="wallet_address" class="form-label">Solana Wallet Address</label>
             <input
               type="text"
               class="form-control"
               id="wallet_address"
               name="wallet_address"
-              placeholder="0x..."
+              placeholder="..."
               value="{{ wallet_address }}"
               required
               pattern="^0x[a-fA-F0-9]{40}$"
-              title="Must be a valid Ethereum address (0x followed by 40 hex characters)"
+              title="Must be a valid Solana address"
             >
-            <div class="form-text">Paste the Ethereum address to analyze.</div>
+            <div class="form-text">Paste the Solana address to analyze.</div>
           </div>
 
           <button type="submit" class="btn btn-gradient-solana w-100 fw-semibold">

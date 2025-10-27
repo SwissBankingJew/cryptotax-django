@@ -68,7 +68,10 @@
                       <a href="{% url 'wallet_analysis:payment_page' order.id %}" class="btn btn-sm btn-primary">
                         Pay Now
                       </a>
-                    {% else %}
+		      <a href="{% url 'wallet_analysis:verify_signature' order.id %}" class="btn btn-sm btn-secondary">
+			Verify
+		      </a>
+									{% else %}
                       <a href="{% url 'wallet_analysis:order_detail' order.id %}" class="btn btn-sm btn-outline-primary">
                         View Details
                       </a>

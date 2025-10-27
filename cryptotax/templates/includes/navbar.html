@@ -12,14 +12,22 @@
           <li class="nav-item"><a class="nav-link {% if '/dashboard/' in request.path %}active{% endif %}" href="{% url 'wallet_analysis:dashboard' %}">{% translate "Dashboard" %}</a></li>
         {% endif %}
         {% if request.user.is_staff %}
-          <li class="nav-item"><a class="nav-link" href="/admin/">{% translate "Admin" %}</a></li>
-        {% endif %}
-      </ul>
-      <div class="d-flex align-items-center gap-2">
+		<li class="nav-item"><a class="nav-link" href="/admin/">{% translate "Admin" %}</a></li>
+		{% endif %}
+		</ul>
+		<div class=" my-2">
+			<div class="alert alert-warning d-flex align-items-center justify-content-center gap-2 py-2 px-3 shadow-sm rounded-3 fw-semibold mb-0"
+				role="alert" style="max-width: 100%; margin-right: 1rem;">
+				⚠️ <strong>BETA SOFTWARE!</strong>
+				<span>Expect bugs and data issues. Found a problem?</span>
+				<a href="https://twitter.com/SwissBankingJew" target="_blank" class="alert-link">@SwissBankingJew</a>
+			</div>
+		</div>
+	<div class="d-flex align-items-center gap-2">
         {% if request.user.is_authenticated %}
-          <a class="btn btn-gradient-solana btn-sm" href="{% url 'wallet_analysis:create_order' %}">
+          <!-- a class="btn btn-gradient-solana btn-sm" href="{% url 'wallet_analysis:create_order' %}">
             <i class="bi bi-plus-lg"></i> {% translate "New Analysis" %}
-          </a>
+          </a --!>
           <span class="navbar-text d-none d-lg-inline text-muted">{{ request.user.get_short_name|default:request.user.email|default:request.user.username }}</span>
           <a class="btn btn-outline-secondary btn-sm" href="{% url 'account_logout' %}">{% translate "Logout" %}</a>
         {% else %}

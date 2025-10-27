@@ -1,0 +1,150 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .payment-details {
+        background: #ffffff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+    .payment-details h2,
+    .payment-details h3 {
+        margin-top: 0;
+        color: #000000;
+    }
+    .payment-details dl {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: 10px;
+    }
+    .payment-details dt {
+        font-weight: bold;
+        color: #000000;
+    }
+    .payment-details dd {
+        margin: 0;
+        font-family: monospace;
+        color: #000000;
+    }
+    .payment-details ol,
+    .payment-details ul {
+        color: #000000;
+    }
+    .warning-box {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 20px 0;
+    }
+    .warning-box h3 {
+        margin-top: 0;
+        color: #000000;
+    }
+    .warning-box p,
+    .warning-box ul,
+    .warning-box li {
+        color: #000000;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="warning-box">
+    <h3>⚠️ Customer Service Action</h3>
+    <p>This action allows you to manually confirm a payment when the user has paid but the frontend didn't capture the transaction signature.</p>
+    <p><strong>Use cases:</strong></p>
+    <ul>
+        <li>User's browser crashed after payment</li>
+        <li>Network connection lost</li>
+        <li>User provides transaction hash via support ticket</li>
+    </ul>
+</div>
+
+<div class="payment-details">
+    <h2>Payment Details</h2>
+    <dl>
+        <dt>Payment ID:</dt>
+        <dd>{{ payment.id }}</dd>
+
+        <dt>Order ID:</dt>
+        <dd>{{ order.id }}</dd>
+
+        <dt>User:</dt>
+        <dd>{{ order.user.email }}</dd>
+
+        <dt>Wallet to Analyze:</dt>
+        <dd>{{ order.wallet_address }}</dd>
+
+        <dt>Amount Expected:</dt>
+        <dd>${{ payment.amount_expected|floatformat:2 }} {{ payment.get_token_type_display }}</dd>
+
+        <dt>Recipient Address:</dt>
+        <dd>{{ payment.recipient_address }}</dd>
+
+        <dt>Reference (Pubkey):</dt>
+        <dd>{{ payment.reference }}</dd>
+
+        <dt>Payment Status:</dt>
+        <dd><strong>{{ payment.get_status_display }}</strong></dd>
+
+        <dt>Created:</dt>
+        <dd>{{ payment.created_at }}</dd>
+    </dl>
+</div>
+
+<form method="post" action="{% url 'admin:wallet_analysis_solanapayment_changelist' %}">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="manually_confirm_payment" />
+    <input type="hidden" name="_selected_action" value="{{ payment.id }}" />
+
+    <fieldset class="module aligned">
+        <h2>Enter Transaction Signature</h2>
+
+        <div class="form-row">
+            {{ form.transaction_signature.errors }}
+            <div>
+                <label for="{{ form.transaction_signature.id_for_label }}">
+                    {{ form.transaction_signature.label }}:
+                </label>
+                {{ form.transaction_signature }}
+                <p class="help">{{ form.transaction_signature.help_text }}</p>
+            </div>
+        </div>
+
+        <div class="form-row">
+            {{ form.verify_on_chain.errors }}
+            <div>
+                <label for="{{ form.verify_on_chain.id_for_label }}">
+                    {{ form.verify_on_chain }}
+                    {{ form.verify_on_chain.label }}
+                </label>
+                <p class="help">{{ form.verify_on_chain.help_text }}</p>
+            </div>
+        </div>
+    </fieldset>
+
+    <div class="submit-row">
+        <input type="submit" value="Confirm Payment" name="apply" class="default" />
+        <a href="{% url 'admin:wallet_analysis_solanapayment_changelist' %}" class="button cancel-link">Cancel</a>
+    </div>
+</form>
+
+<div class="payment-details" style="margin-top: 30px;">
+    <h3>What happens when you confirm:</h3>
+    <ol>
+        <li>Transaction signature is saved to payment record</li>
+        <li>If "Verify on blockchain" is checked, the transaction is verified on-chain</li>
+        <li>Payment status changes to <strong>CONFIRMED</strong></li>
+        <li>Order status changes to <strong>PAYMENT_RECEIVED</strong></li>
+        <li>Dune Analytics queries are automatically queued</li>
+        <li>User will receive email when reports are ready</li>
+    </ol>
+</div>
+
+{% endblock %}

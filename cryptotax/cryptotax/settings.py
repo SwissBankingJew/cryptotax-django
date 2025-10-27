@@ -11,10 +11,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -23,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-3cc6es*m#l=$wd!=c4#a%o0@%x0##3=%yw*f^ej7p%3x5@qf3w')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DJANGO_DEBUG', 'false').lower() in {'1', 'true', 'yes', 'on'}
+DEBUG = os.getenv('DJANGO_DEBUG', 'true').lower() in {'1', 'true', 'yes', 'on'}
 
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS if host.strip()]
@@ -173,8 +175,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 Q_CLUSTER = {
     'name': 'cryptotax_queue',
     'workers': 2,
-    'timeout': 2100,  # 35 minutes max per task (Dune queries can take up to 30 min)
-    'retry': 2400,  # Retry failed tasks after 40 minutes
+    'timeout': 10800,  # 35 minutes max per task (Dune queries can take up to 30 min)
+    'retry': 240100,  # Retry failed tasks after 40 minutes
     'queue_limit': 50,
     'bulk': 10,
     'orm': 'default',  # Use default database (SQLite) as queue
@@ -185,5 +187,46 @@ MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
 
 # Solana Configuration
-SOLANA_RPC_URL = os.getenv('SOLANA_RPC_URL', 'https://api.mainnet-beta.solana.com')
-SOLANA_RECIPIENT_ADDRESS = os.getenv('SOLANA_RECIPIENT_ADDRESS')
+SOLANA_NETWORK = os.getenv('SOLANA_NETWORK', 'mainnet')  # 'mainnet' or 'devnet'
+
+# Network-specific RPC URLs
+SOLANA_MAINNET_RPC_URL = os.getenv('SOLANA_MAINNET_RPC_URL', 'https://api.mainnet-beta.solana.com')
+SOLANA_DEVNET_RPC_URL = os.getenv('SOLANA_DEVNET_RPC_URL', 'https://api.devnet.solana.com')
+
+# Select RPC URL based on network
+SOLANA_RPC_URL = SOLANA_MAINNET_RPC_URL if SOLANA_NETWORK == 'mainnet' else SOLANA_DEVNET_RPC_URL
+
+# Recipient addresses (can be different for devnet testing)
+SOLANA_MAINNET_RECIPIENT = os.getenv('SOLANA_RECIPIENT_ADDRESS')
+SOLANA_DEVNET_RECIPIENT = os.getenv('SOLANA_DEVNET_RECIPIENT', SOLANA_MAINNET_RECIPIENT)
+SOLANA_RECIPIENT_ADDRESS = SOLANA_MAINNET_RECIPIENT if SOLANA_NETWORK == 'mainnet' else SOLANA_DEVNET_RECIPIENT
+
+# SPL Token mint addresses for USDC and USDT
+# Mainnet token mints
+USDC_MINT_MAINNET = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+USDT_MINT_MAINNET = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB'
+
+# Devnet token mints (different from mainnet!)
+USDC_MINT_DEVNET = 'Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr'  # Devnet USDC
+USDT_MINT_DEVNET = 'EJwZgeZrdC8TXTQbQBoL6bfuAnFUUy1PVCMB4DYPzVaS'  # Devnet USDT (or use same as USDC for testing)
+
+# Select mints based on network
+USDC_MINT = USDC_MINT_MAINNET if SOLANA_NETWORK == 'mainnet' else USDC_MINT_DEVNET
+USDT_MINT = USDT_MINT_MAINNET if SOLANA_NETWORK == 'mainnet' else USDT_MINT_DEVNET
+
+# Dune Analytics Configuration
+DUNE_API_KEY = os.getenv('DUNE_API_KEY')
+
+# Dune Query IDs for different report types
+DUNE_QUERY_DEFI_TRADES = os.getenv('DUNE_QUERY_DEFI_TRADES')  # DeFi trades/swaps
+DUNE_QUERY_LP_EVENTS = os.getenv('DUNE_QUERY_LP_EVENTS')  # LP/staking events
+DUNE_QUERY_NFT_TRANSACTIONS = os.getenv('DUNE_QUERY_NFT_TRANSACTIONS')  # NFT transactions
+DUNE_QUERY_TOKEN_TRANSFERS = os.getenv('DUNE_QUERY_TOKEN_TRANSFERS')  # Token transfers
+
+# Map query types to their IDs
+DUNE_QUERIES = {
+    'defi_trades': DUNE_QUERY_DEFI_TRADES,
+    'lp_events': DUNE_QUERY_LP_EVENTS,
+    'nft_transactions': DUNE_QUERY_NFT_TRANSACTIONS,
+    'token_transfers': DUNE_QUERY_TOKEN_TRANSFERS,
+}

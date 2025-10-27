@@ -102,7 +102,7 @@
 </div>
 {% endif %}
 
-<!-- Processing Status Alert -->
+<!-- Status Alerts -->
 {% if order.status == 'processing' or order.status == 'payment_received' %}
 <div class="row mb-4">
   <div class="col-12">
@@ -113,7 +113,7 @@
         </div>
         <div>
           <strong>Processing Your Reports</strong>
-          <p class="mb-0 mt-1">Your wallet analysis is in progress. This may take a few minutes. This page will automatically refresh when complete.</p>
+          <p class="mb-0 mt-1">Currently scanning the entire blockchain. This may take up to two hours. This page will automatically refresh when complete.</p>
         </div>
       </div>
     </div>
@@ -123,6 +123,48 @@
   // Auto-refresh every 10 seconds if still processing
   setTimeout(() => location.reload(), 10000);
 </script>
+{% elif order.status == 'partial_complete' %}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="alert alert-warning" role="alert">
+      <div class="d-flex align-items-start">
+        <i class="bi bi-exclamation-triangle-fill me-3 mt-1"></i>
+        <div>
+          <strong>Partial Success</strong>
+          <p class="mb-0 mt-1">Some reports were generated successfully, but others failed. You can download the available reports below. Please contact support if you need the missing reports.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% elif order.status == 'failed' %}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="alert alert-danger" role="alert">
+      <div class="d-flex align-items-start">
+        <i class="bi bi-x-circle-fill me-3 mt-1"></i>
+        <div>
+          <strong>Report Generation Failed</strong>
+          <p class="mb-0 mt-1">We encountered an error generating your reports. Please contact support with your order ID: <code>{{ order.id }}</code></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% elif order.status == 'completed' %}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="alert alert-success" role="alert">
+      <div class="d-flex align-items-start">
+        <i class="bi bi-check-circle-fill me-3 mt-1"></i>
+        <div>
+          <strong>Reports Ready!</strong>
+          <p class="mb-0 mt-1">All reports have been generated successfully. Download them below.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endif %}
 
 <!-- Reports Section -->
@@ -138,10 +180,27 @@
         <div class="list-group list-group-flush">
           {% for report in report_files %}
           <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <div>
-              <h3 class="h6 fw-semibold mb-1">{{ report.file_type|title }}</h3>
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center mb-1">
+                {% if report.file_type == 'defi_trades' %}
+                  <i class="bi bi-arrow-left-right text-primary me-2"></i>
+                  <h3 class="h6 fw-semibold mb-0">DeFi Trades & Swaps</h3>
+                {% elif report.file_type == 'lp_events' %}
+                  <i class="bi bi-droplet text-info me-2"></i>
+                  <h3 class="h6 fw-semibold mb-0">Liquidity & Staking</h3>
+                {% elif report.file_type == 'nft_transactions' %}
+                  <i class="bi bi-image text-warning me-2"></i>
+                  <h3 class="h6 fw-semibold mb-0">NFT Transactions</h3>
+                {% elif report.file_type == 'token_transfers' %}
+                  <i class="bi bi-send text-success me-2"></i>
+                  <h3 class="h6 fw-semibold mb-0">Token Transfers</h3>
+                {% else %}
+                  <i class="bi bi-file-earmark-text me-2"></i>
+                  <h3 class="h6 fw-semibold mb-0">{{ report.file_type|title }}</h3>
+                {% endif %}
+              </div>
               <small class="text-muted">
-                {{ report.file_name }} &middot; {{ report.file_size_mb }} MB
+                {{ report.file_name }} &middot; {{ report.file_size_mb|floatformat:2 }} MB
               </small>
             </div>
             <a href="{% url 'wallet_analysis:download_report' report.id %}" class="btn btn-gradient-solana btn-sm">
@@ -175,23 +234,64 @@
   <div class="col-12">
     <div class="card shadow-sm">
       <div class="card-body">
-        <h2 class="h5 fw-bold mb-3">Processing Status</h2>
+        <h2 class="h5 fw-bold mb-3">
+          <i class="bi bi-gear me-2"></i>Processing Details
+        </h2>
         <div class="list-group list-group-flush">
           {% for job in query_jobs %}
-          <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <div>
-              <span class="fw-semibold">{{ job.query_name|title }}</span>
-            </div>
-            <div>
-              {% if job.status == 'completed' %}
-                <span class="badge bg-success">Completed</span>
-              {% elif job.status == 'running' %}
-                <span class="badge bg-primary">Running</span>
-              {% elif job.status == 'queued' %}
-                <span class="badge bg-secondary">Queued</span>
-              {% elif job.status == 'failed' %}
-                <span class="badge bg-danger">Failed</span>
-              {% endif %}
+          <div class="list-group-item px-0">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center mb-1">
+                  {% if job.query_name == 'defi_trades' %}
+                    <i class="bi bi-arrow-left-right text-primary me-2"></i>
+                  {% elif job.query_name == 'lp_events' %}
+                    <i class="bi bi-droplet text-info me-2"></i>
+                  {% elif job.query_name == 'nft_transactions' %}
+                    <i class="bi bi-image text-warning me-2"></i>
+                  {% elif job.query_name == 'token_transfers' %}
+                    <i class="bi bi-send text-success me-2"></i>
+		  {% else %}
+		    <i class="bi bi-file-earmark-text me-2"></i>
+		  {% endif %}
+
+		<span class="fw-semibold">{{ job.query_name|title|slugify|cut:"-" }}</span>
+		
+		</div>
+                {% if job.error_message %}
+                <small class="text-danger d-block mt-1">
+                  <i class="bi bi-exclamation-circle me-1"></i>{{ job.error_message|truncatewords:20 }}
+                </small>
+                {% endif %}
+                {% if job.started_at and job.completed_at %}
+                <small class="text-muted d-block mt-1">
+                  Completed in {{ job.completed_at|timeuntil:job.started_at }}
+                </small>
+                {% endif %}
+              </div>
+              <div class="ms-3">
+                {% if job.status == 'completed' %}
+                  <span class="badge bg-success">
+                    <i class="bi bi-check-circle me-1"></i>Completed
+                  </span>
+                {% elif job.status == 'running' %}
+                  <span class="badge bg-primary">
+                    <i class="bi bi-hourglass-split me-1"></i>Running
+                  </span>
+                {% elif job.status == 'queued' %}
+                  <span class="badge bg-secondary">
+                    <i class="bi bi-clock me-1"></i>Queued
+                  </span>
+                {% elif job.status == 'failed' %}
+                  <span class="badge bg-danger">
+                    <i class="bi bi-x-circle me-1"></i>Failed
+                  </span>
+                {% elif job.status == 'failed_needs_review' %}
+                  <span class="badge bg-warning">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Needs Review
+                  </span>
+                {% endif %}
+              </div>
             </div>
           </div>
           {% endfor %}

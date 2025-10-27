@@ -111,9 +111,8 @@ class SolanaPayment(models.Model):
         (TOKEN_USDT, 'USDT'),
     ]
 
-    # Token mint addresses
-    USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
-    USDT_MINT = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB'
+    # Note: Token mint addresses are now in settings.py (network-aware)
+    # Access via settings.USDC_MINT and settings.USDT_MINT
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
@@ -200,7 +199,8 @@ class SolanaPayment(models.Model):
 
     def get_token_mint_address(self):
         """Get the correct mint address based on token type"""
-        return self.USDC_MINT if self.token_type == self.TOKEN_USDC else self.USDT_MINT
+        from django.conf import settings
+        return settings.USDC_MINT if self.token_type == self.TOKEN_USDC else settings.USDT_MINT
 
 
 class DuneQueryJob(models.Model):
@@ -399,3 +399,132 @@ class ReportFile(models.Model):
         """Get full filesystem path to file"""
         from django.conf import settings
         return settings.MEDIA_ROOT / self.file_path
+
+
+# REFACTOR
+
+class AnalysisRun(models.Model):
+    """A single attempt to analyze an order"""
+    STATUS_PENDING = 'pending'
+    STATUS_RUNNING = 'running' 
+    STATUS_COMPLETED = 'completed'
+    STATUS_PARTIAL = 'partial'  # Some queries succeeded, some failed
+    STATUS_FAILED = 'failed'    # All queries failed
+    
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_RUNNING, 'Running'),
+        (STATUS_COMPLETED, 'Completed'),
+        (STATUS_PARTIAL, 'Partial'),
+        (STATUS_FAILED, 'Failed'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    order = models.ForeignKey(
+        WalletAnalysisOrder,
+        on_delete=models.CASCADE,
+        related_name='analysis_runs',
+        help_text='The order this run belongs to'
+    )
+    
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default=STATUS_PENDING,
+        db_index=True
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Analysis Run'
+        verbose_name_plural = 'Analysis Runs'
+        indexes = [
+            models.Index(fields=['order', '-created_at']),
+            models.Index(fields=['status', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"Run {self.id} for Order {self.order.id} - {self.get_status_display()}"
+
+
+def get_csv_upload_path(query_execution, filename):
+    """Generate path: analysis_results/{order_id}/{run_id}/{dune_query_id}.csv"""
+    return f'analysis_results/{query_execution.run.order.id}/{query_execution.run.id}/{query_execution.dune_query_id}.csv'    
+
+
+class QueryExecution(models.Model):
+    """Single query execution within a run"""
+    STATUS_PENDING = 'pending'
+    STATUS_RUNNING = 'running'
+    STATUS_COMPLETED = 'completed'
+    STATUS_FAILED = 'failed'
+    
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_RUNNING, 'Running'),
+        (STATUS_COMPLETED, 'Completed'),
+        (STATUS_FAILED, 'Failed'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    run = models.ForeignKey(
+        AnalysisRun,
+        on_delete=models.CASCADE,
+        related_name='query_executions',
+        help_text='The analysis run this query belongs to'
+    )
+    
+    dune_query_id = models.IntegerField(
+        help_text='Dune Analytics query ID'
+    )
+    
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+        db_index=True
+    )
+    
+    error_message = models.TextField(
+        null=True,
+        blank=True,
+        help_text='Error details if query failed'
+    )
+
+    result_csv = models.FileField(
+        upload_to=get_csv_upload_path,
+        null=True,
+        blank=True,
+        help_text='CSV result file'
+    )
+
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['started_at']
+        verbose_name = 'Query Execution'
+        verbose_name_plural = 'Query Executions'
+        indexes = [
+            models.Index(fields=['run', 'status']),
+            models.Index(fields=['status', '-started_at']),
+        ]
+
+    
+    def __str__(self):
+        return f"{self.dune_query_id} - {self.get_status_display()}"
+
+    
+
+    
+    @property
+    def duration(self):
+        """Calculate execution duration in seconds"""
+        if self.started_at and self.completed_at:
+            return (self.completed_at - self.started_at).total_seconds()
+        return None

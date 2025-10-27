@@ -1,0 +1,106 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+  <div class="module">
+    <h2>{% trans "Find Order by Transaction Signature" %}</h2>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <fieldset class="module aligned">
+        {{ form.as_p }}
+      </fieldset>
+      <div class="submit-row">
+        <input type="submit" class="default" value="{% trans 'Find Order' %}" />
+      </div>
+    </form>
+  </div>
+
+  {% if sig_value %}
+    <div class="module">
+      <h3>{% trans "Lookup Result" %}</h3>
+      <p><strong>{% trans "Signature" %}:</strong> {{ sig_value }}</p>
+      {% if refs %}
+        <p><strong>{% trans "Extracted References" %}:</strong> {{ refs|join:", " }}</p>
+      {% else %}
+        <p><strong>{% trans "Extracted References" %}:</strong> {% trans "None found" %}</p>
+      {% endif %}
+
+      {% if results %}
+        <table class="adminlist">
+          <thead>
+            <tr>
+              <th>{% trans "Payment" %}</th>
+              <th>{% trans "Order" %}</th>
+              <th>{% trans "Reference" %}</th>
+              <th>{% trans "Status" %}</th>
+              <th>{% trans "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in results %}
+              <tr>
+                <td><a href="{% url 'admin:wallet_analysis_solanapayment_change' p.id %}">{{ p.id|stringformat:':s'|slice:":8" }}…</a></td>
+                <td><a href="{% url 'admin:wallet_analysis_walletanalysisorder_change' p.order.id %}">{{ p.order.id|stringformat:':s'|slice:":8" }}…</a></td>
+                <td>{{ p.reference }}</td>
+                <td>{{ p.status }}</td>
+                <td>
+                  {% if p.transaction_signature %}
+                    <a href="https://solscan.io/tx/{{ p.transaction_signature }}" target="_blank">{% trans "View Tx" %}</a>
+                  {% else %}
+                    {% trans "No Tx yet" %}
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>{% trans "No matching payments found." %}</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if debug %}
+    <div class="module">
+      <h3>{% trans "Debug: Account Keys" %}</h3>
+      {% if debug.account_keys %}
+        <ol>
+          {% for k in debug.account_keys %}
+            <li><code>{{ k }}</code></li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p><em>{% trans "No account keys available" %}</em></p>
+      {% endif %}
+
+      <h3>{% trans "Debug: Reference Candidates" %}</h3>
+      {% if debug.reference_candidates %}
+        <p>{{ debug.reference_candidates|join:", " }}</p>
+      {% else %}
+        <p><em>{% trans "No candidates" %}</em></p>
+      {% endif %}
+
+      <h3>{% trans "Debug: Instructions" %}</h3>
+      {% if debug.instructions %}
+        {% for instr in debug.instructions %}
+          <div class="inline-group">
+            <p><strong>Program:</strong> <code>{{ instr.program_id }}</code></p>
+            <p><strong>Accounts:</strong> {{ instr.account_pubkeys|join:", " }}</p>
+            {% if instr.parsed %}
+              <details>
+                <summary>Parsed</summary>
+                <pre>{{ instr.parsed|safe }}</pre>
+              </details>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <p><em>{% trans "No instructions available" %}</em></p>
+      {% endif %}
+
+      {% if debug.error %}
+        <p><strong>Error:</strong> {{ debug.error }}</p>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endblock %}

@@ -16,6 +16,7 @@ urlpatterns = [
 
     # Payment
     path('analysis/order/<uuid:order_id>/payment/', views.payment_page_view, name='payment_page'),
+    path('order/<uuid:order_id>/verify/', views.verify_signature_view, name='verify_signature'),
 
     # Order detail
     path('analysis/order/<uuid:order_id>/', views.order_detail_view, name='order_detail'),
